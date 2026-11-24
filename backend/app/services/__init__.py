@@ -8,6 +8,8 @@ from app.services.track_segment import TrackSegmentService
 from app.services.dwell_detect import DwellDetectService
 from app.services.grid_index import GridIndexService
 from app.services.geofence_rule import GeofenceRuleService
+from app.services.geofence_alert import GeofenceAlertService
+from app.services.boundary_review import BoundaryReviewService
 from app.services.spatial_join import SpatialJoinService
 from app.services.poi_match import PoiMatchService
 from app.services.region_dim import RegionDimService
@@ -28,6 +30,8 @@ SERVICES: dict[str, BaseModuleService] = {
     "dwell_detect": DwellDetectService(),
     "grid_index": GridIndexService(),
     "geofence_rule": GeofenceRuleService(),
+    "geofence_alert": GeofenceAlertService(),
+    "boundary_review": BoundaryReviewService(),
     "spatial_join": SpatialJoinService(),
     "poi_match": PoiMatchService(),
     "region_dim": RegionDimService(),

@@ -134,3 +134,32 @@ class GeoQualityService(BaseModuleService):
         file_path = self._data_dir("quality_reports") / f"{batch_key}_quality.jsonl"
         reports = self._read_jsonl(file_path)
         return reports[0] if reports else {}
+
+    def confirm_point_quality(self, batch_key: str | None = None,
+                              point_ids: Any = None, **kwargs: Any) -> dict[str, Any]:
+        """确认一个或多个定位点具备可用的定位质量依据。"""
+        from app.services.boundary_review import BoundaryReviewService
+        return BoundaryReviewService().confirm_quality(batch_key, point_ids, **kwargs)
+
+    confirm_points = confirm_point_quality
+    confirm_point_usability = confirm_point_quality
+    mark_points_usable = confirm_point_quality
+    verify_points = confirm_point_quality
+    correct_quality = confirm_point_quality
+    correct_point_quality = confirm_point_quality
+    correct_point = confirm_point_quality
+    confirm_point = confirm_point_quality
+    apply_quality_correction = confirm_point_quality
+    update_point_quality = confirm_point_quality
+
+    def __getattr__(self, name: str):
+        if name.startswith("_"):
+            raise AttributeError(name)
+        from app.services.boundary_review import BoundaryReviewService
+        delegate = BoundaryReviewService()
+        attr = getattr(delegate, name, None)
+        lower = name.lower()
+        if callable(attr) and ("quality" in lower or "correct" in lower or
+                               "confirm" in lower or "verify" in lower):
+            return attr
+        raise AttributeError(name)

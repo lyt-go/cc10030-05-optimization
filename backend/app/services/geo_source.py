@@ -97,6 +97,48 @@ class GeoSourceService(BaseModuleService):
         points = self._read_jsonl(file_path)
         return points, str(file_path)
 
+    def save_points(self, batch_key: str, points: list[dict[str, Any]],
+                    *, append: bool = False) -> dict[str, Any]:
+        """写入测试或接入侧核定的原始定位点；默认覆盖当前批次证据文件。"""
+        normalized = []
+        for index, point in enumerate(points or [], 1):
+            item = dict(point)
+            item.setdefault("point_id", item.get("id", index))
+            item.setdefault("batch_key", batch_key)
+            normalized.append(item)
+        path = self._data_dir("geo_points") / f"{batch_key}.jsonl"
+        if append:
+            written = self._write_jsonl(path, normalized)
+            total = len(self._read_jsonl(path))
+        else:
+            written = self._write_jsonl_overwrite(path, normalized)
+            total = written
+        rows = store.rows(self.MODULE)
+        entry = next((r for r in rows if r.get("批次编号") == batch_key), None)
+        if entry is not None:
+            entry["记录条数"] = str(total)
+            entry["采集水位"] = f"已采集{total}条"
+        return {"batch_key": batch_key, "written": written, "total": total, "output_file": str(path)}
+
+    def write_points(self, batch_key: str, points: list[dict[str, Any]]) -> dict[str, Any]:
+        return self.save_points(batch_key, points, append=False)
+
+    def append_points(self, batch_key: str, points: list[dict[str, Any]]) -> dict[str, Any]:
+        return self.save_points(batch_key, points, append=True)
+
+    def upsert_point(self, batch_key: str, point: dict[str, Any]) -> dict[str, Any]:
+        points, _ = self.get_batch_points(batch_key)
+        pid = point.get("point_id", point.get("id"))
+        replaced = False
+        for index, existing in enumerate(points):
+            if str(existing.get("point_id", existing.get("id"))) == str(pid):
+                points[index] = {**existing, **point}
+                replaced = True
+                break
+        if not replaced:
+            points.append(point)
+        return self.save_points(batch_key, points)
+
     def list_active_batches(self) -> list[dict[str, Any]]:
         """获取所有已接入的活跃采集批次列表。"""
         rows = store.rows(self.MODULE)
